@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# gamma — troca o perfil ICC de gamma do monitor via kscreen-doctor.
+# Uso: gamma {toggle|up|down|reset|status}
+set -euo pipefail
+
+ICC_DIR="${GAMMA_ICC_DIR:-$HOME/gamma-icc-master}"
+OUTPUT="${GAMMA_OUTPUT:-DP-1}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/gamma-switch"
+STATE_FILE="$STATE_DIR/state"
+
+DEFAULT=70   # valores em centésimos: 70 = 0.7
+MIN=50
+MAX=150
+STEP=5
+
+usage() { echo "uso: gamma {toggle|up|down|reset|status}" >&2; exit 2; }
+
+# 70 -> 0.7 ; 100 -> 1.0 ; 105 -> 1.05
+fmt() {
+  local v=$1 dec
+  dec=$(printf %02d $((v % 100)))
+  [[ $dec == ?0 ]] && dec=${dec:0:1}
+  echo "$((v / 100)).$dec"
+}
+
+osd() {
+  qdbus6 org.kde.plasmashell /org/kde/osdService org.kde.osdService.showText video-display "$1" >/dev/null 2>&1 \
+    || notify-send -t 1500 gamma "$1" >/dev/null 2>&1 || true
+}
+
+load_state() {
+  value=$DEFAULT; on=0
+  [[ -r $STATE_FILE ]] || return 0
+  local k v
+  while IFS='=' read -r k v || [[ -n $k ]]; do
+    v=${v%$'\r'}
+    case $k in
+      value) if [[ $v =~ ^[1-9][0-9]*$ ]] && (( v >= MIN && v <= MAX && v % STEP == 0 )); then value=$v; fi ;;
+      on) if [[ $v == 0 || $v == 1 ]]; then on=$v; fi ;;
+    esac
+  done < "$STATE_FILE"
+  return 0
+}
+
+# Escrita atômica: nunca deixa o arquivo pela metade.
+save_state() {
+  printf 'value=%s\non=%s\n' "$1" "$2" > "$STATE_FILE.tmp"
+  mv -f "$STATE_FILE.tmp" "$STATE_FILE"
+}
+
+fail_apply() {
+  echo "gamma: kscreen-doctor falhou" >&2
+  osd "Gamma: falha ao aplicar"
+  exit 1
+}
+
+# Aplica o perfil do valor $1 e grava o estado só se der certo.
+apply_on() {
+  local v=$1 profile
+  profile="$ICC_DIR/sRGB-$(fmt "$v")G.icc"
+  if [[ ! -f $profile ]]; then
+    echo "gamma: perfil não encontrado: $profile" >&2
+    osd "Gamma: perfil não encontrado ($(fmt "$v"))"
+    exit 1
+  fi
+  kscreen-doctor "output.$OUTPUT.iccprofile.$profile" >/dev/null || fail_apply
+  save_state "$v" 1
+  osd "Gamma $(fmt "$v")"
+}
+
+# Volta ao normal (sem ICC); $1 = valor a guardar.
+apply_off() {
+  kscreen-doctor "output.$OUTPUT.iccprofile." >/dev/null || fail_apply
+  save_state "$1" 0
+  osd "Gamma normal"
+}
+
+[[ $# -eq 1 ]] || usage
+case $1 in toggle|up|down|reset|status) ;; *) usage ;; esac
+
+# Uma execução por vez: apertos rápidos de tecla entram em fila.
+mkdir -p "$STATE_DIR"
+exec 9>"$STATE_DIR/lock"
+flock 9
+load_state
+
+case $1 in
+  toggle) if (( on )); then apply_off "$value"; else apply_on "$value"; fi ;;
+  up)     apply_on $(( value + STEP > MAX ? MAX : value + STEP )) ;;
+  down)   apply_on $(( value - STEP < MIN ? MIN : value - STEP )) ;;
+  reset)  apply_off "$DEFAULT" ;;
+  status) echo "$( (( on )) && echo on || echo off ) $(fmt "$value")" ;;
+  *)      usage ;;
+esac

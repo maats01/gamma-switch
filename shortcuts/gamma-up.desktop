@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Gamma: subir
+Exec=@BIN@ up
+Icon=video-display
+NoDisplay=true
+X-KDE-Shortcuts=Meta+Shift+PgUp

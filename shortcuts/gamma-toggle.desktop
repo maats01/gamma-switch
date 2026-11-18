@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Gamma: ligar/desligar
+Exec=@BIN@ toggle
+Icon=video-display
+NoDisplay=true
+X-KDE-Shortcuts=Meta+Shift+G

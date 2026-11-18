@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Gamma: resetar
+Exec=@BIN@ reset
+Icon=video-display
+NoDisplay=true
+X-KDE-Shortcuts=Meta+Alt+G

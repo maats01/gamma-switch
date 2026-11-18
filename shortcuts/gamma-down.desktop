@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Gamma: descer
+Exec=@BIN@ down
+Icon=video-display
+NoDisplay=true
+X-KDE-Shortcuts=Meta+Shift+PgDown
