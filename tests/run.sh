@@ -140,6 +140,19 @@ test_parallel_up_serialized() {
   [[ "$(last_ks)" == *"/sRGB-1.0G.icc" ]] || fail "ks: $(last_ks)"
 }
 
+test_default_icc_dir_is_repo_via_symlink() {
+  unset GAMMA_ICC_DIR
+  ln -s "$GAMMA" "$TMP/stubs/gamma"
+  "$TMP/stubs/gamma" toggle || fail "rc!=0" || return 1
+  assert_eq "$(last_ks)" "output.DP-1.iccprofile.$ROOT/icc/sRGB-0.7G.icc"
+}
+
+test_bundled_profiles_complete() {
+  local v; for v in "${VALUES[@]}"; do
+    [[ -s "$ROOT/icc/sRGB-${v}G.icc" ]] || fail "faltando sRGB-${v}G.icc" || return 1
+  done
+}
+
 test_kscreen_failure_shows_osd() {
   KS_RC=1 g toggle 2>/dev/null
   grep -q "falha" "$TMP/osd.log" || fail "OSD sem aviso de falha"

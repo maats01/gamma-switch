@@ -3,7 +3,9 @@
 # Uso: gamma {toggle|up|down|reset|status}
 set -euo pipefail
 
-ICC_DIR="${GAMMA_ICC_DIR:-$HOME/gamma-icc-master}"
+# Padrão: a pasta icc/ do próprio repositório (segue o symlink de ~/.local/bin/gamma).
+REPO_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+ICC_DIR="${GAMMA_ICC_DIR:-$REPO_DIR/icc}"
 OUTPUT="${GAMMA_OUTPUT:-DP-1}"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/gamma-switch"
 STATE_FILE="$STATE_DIR/state"
