@@ -58,7 +58,7 @@ System Settings › Keyboard › Shortcuts (search for "Gamma").
 ## Install
 
 ```sh
-git clone https://github.com/<you>/gamma-switch.git
+git clone https://github.com/maats01/gamma-switch.git
 cd gamma-switch
 bash install.sh
 ```
